@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Splitter</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  
+  <script src="./app.js"></script>
+</head>
+<body>
+
+    <div>
+        <input id="amountToDeposit" value="10" />
+        <button onclick="App.deposit()">Deposit to Splitter (Ether)</button>
+    </div>
+
+    <div>
+        <input id="splitAmount" value="10" />
+        <button onclick="App.splitAmount()">Split to Bob&Carol (Ether)</button>
+    </div>
+    
+    <p>Balances (Ether):</p>
+
+    <div class="balance">
+        <label>Splitter:
+        <input disabled="disabled" id="Splitter" />
+        </label>
+    </div>
+
+    <div class="balance">
+        <label>Alice:
+        <input disabled="disabled" id="Alice" />
+        </label>
+    </div>
+
+    <div class="balance">
+        <label>Bob:
+        <input disabled="disabled" id="Bob" />
+        </label>
+    </div>
+
+    <div class="balance">
+        <label>Carol:
+        <input disabled="disabled" id="Carol" />
+        </label>
+    </div>
+    
+    <style>
+        input {width: 160px}
+        div {margin: 5px}
+        div.balance {width: 220px}
+        div.balance input {float: right}
+    </style>
+
+</body>
+</html>
