@@ -22,6 +22,7 @@ var accountNames = ["Alice", "Bob", "Carol"]
 
 let accounts
 let account
+let initialized
 
 const App = {
   start: function () {
@@ -46,6 +47,7 @@ const App = {
       accounts = accs
       account = accounts[0]
 
+      self.initializeAccounts()
       self.refreshBalances()
 
     })
@@ -71,13 +73,26 @@ const App = {
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
         let instance = await Splitter.deployed()
-        let result = await instance.splitAmount(accounts[1], accounts[2], amountWei, { from: account })
+        let result = await instance.splitAmount(amountWei, { from: account })
         if(result) {
           self.refreshBalances()
         }
       } else {
         console.error("Error: only positive values acceptable!")
       }
+  },
+
+  initializeAccounts: async function () {
+    let instance = await Splitter.deployed()
+    initialized = await instance.checkIfAccountsInitialized({ from: account })
+    if(!initialized) {
+      let result = await instance.initializeAccounts(accounts[0], accounts[1], accounts[2], { from: account, gas: 3721975 })
+      if(result) {
+        console.log('accounts now initialized')
+      }
+    } else {
+      console.log('accounts already initialized')
+    }
   },
 
   deposit: async function () {
