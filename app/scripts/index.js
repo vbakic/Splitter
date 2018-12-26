@@ -2,77 +2,63 @@
 import { default as Web3 } from 'web3'
 import { default as contract } from 'truffle-contract'
 
-const promisify = (inner) =>
-    new Promise((resolve, reject) =>
-        inner((err, res) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(res);
-            }
-        })
-    );
-
 // Import our contract artifacts and turn them into usable abstractions.
 import SplitterArtifact from '../../build/contracts/Splitter.json'
-
 const Splitter = contract(SplitterArtifact)
+const Promise = require("bluebird");
 
 var accountNames = ["Alice", "Bob", "Carol"]
-
 let accounts
 let account
-let initialized
+let instance
+
+window.addEventListener('load', function () {
+  window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+  // Promisify all functions of web3.eth and web3.version
+  Promise.promisifyAll(web3.eth, { suffix: "Promise" });
+  Promise.promisifyAll(web3.version, { suffix: "Promise" });
+  App.start()
+  window.App = App
+})
 
 const App = {
-  start: function () {
+  start: async function () {
     const self = this
 
     // Bootstrap the Splitter abstraction for Use.
     Splitter.setProvider(web3.currentProvider)
 
-    // Get the initial accounts balance so they can be displayed.
-    web3.eth.getAccounts(function (err, accs) {
+    instance = await Splitter.deployed()
+    accounts = await web3.eth.getAccountsPromise()
 
-      if (err != null) {
-        alert('There was an error fetching your accounts.')
-        return
-      }
-
-      if (accs.length === 0) {
-        alert("Couldn't get any accounts! Make sure your Ethereum client is configured correctly.")
-        return
-      }
-
-      accounts = accs
+    if (accounts.length == 0){
+      throw new Error("No available accounts!");
+    }
+    else {
       account = accounts[0]
-
-      self.initializeAccounts()
       self.refreshBalances()
+    }
 
-    })
   },
 
   refreshBalances: async function () {
     const self = this
-    self.refreshAccountBalances() 
-    let instance = await Splitter.deployed()
-    let balance = await promisify(cb => web3.eth.getBalance(instance.address, cb))
+    self.refreshAccountBalances()
+    let balance = await web3.eth.getBalancePromise(instance.address)
     jQuery('#Splitter').val(convertToEther(balance))
   },
 
   refreshAccountBalances: async function () {
     for (let [index, element] of accounts.entries()) {
-      let balance = await promisify(cb => web3.eth.getBalance(element, cb))
+      let balance = await web3.eth.getBalancePromise(element)
       jQuery("#" + accountNames[index]).val(convertToEther(balance))
-    } 
+    }
   },
 
   splitAmount: async function () {
       const self = this
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
-        let instance = await Splitter.deployed()
         let result = await instance.splitAmount(amountWei, { from: account })
         if(result) {
           self.refreshBalances()
@@ -82,40 +68,18 @@ const App = {
       }
   },
 
-  initializeAccounts: async function () {
-    let instance = await Splitter.deployed()
-    initialized = await instance.checkIfAccountsInitialized({ from: account })
-    if(!initialized) {
-      let result = await instance.initializeAccounts(accounts[0], accounts[1], accounts[2], { from: account, gas: 3721975 })
-      if(result) {
-        console.log('accounts now initialized')
-      }
-    } else {
-      console.log('accounts already initialized')
-    }
-  },
-
   deposit: async function () {
     const self = this
-    let instance = await Splitter.deployed()
-    let result = await promisify(
-        cb => web3.eth.sendTransaction({
-            from: account, 
-            to: instance.address,
-            value: convertToWei(jQuery("#amountToDeposit").val())
-        }, cb))
+    let result = await web3.eth.sendTransactionPromise({
+        from: account, 
+        to: instance.address,
+        value: convertToWei(jQuery("#amountToDeposit").val())
+    })
     if(result) {
       self.refreshBalances()
     }
   }
 }
-
-window.App = App
-
-window.addEventListener('load', function () {
-  window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
-  App.start()
-})
 
 function convertToEther(value) {
   return web3.fromWei(value.toString(10), "ether");
