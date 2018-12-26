@@ -9,7 +9,9 @@ const Promise = require("bluebird");
 
 var accountNames = ["Alice", "Bob", "Carol"]
 let accounts
-let account
+let sender
+let receiver1
+let receiver2
 let instance
 
 window.addEventListener('load', function () {
@@ -35,7 +37,9 @@ const App = {
       throw new Error("No available accounts!");
     }
     else {
-      account = accounts[0]
+      sender = accounts[0]
+      receiver1 = accounts[1]
+      receiver2 = accounts[2]
       self.refreshBalances()
     }
 
@@ -59,19 +63,28 @@ const App = {
       const self = this
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
-        let result = await instance.splitAmount(amountWei, { from: account })
+        let result = await instance.splitAmount(receiver1, receiver2, amountWei, { from: sender })
         if(result) {
-          self.refreshBalances()
+          let result1 = await self.pullEther(receiver1)
+          let result2 = await self.pullEther(receiver2)
+          if(result1 && result2) {
+            self.refreshBalances()
+          }
         }
       } else {
         console.error("Error: only positive values acceptable!")
       }
   },
 
+  pullEther: async function (account) {
+    let result = await instance.pullEther({ from: account })
+    return result;
+  },
+
   deposit: async function () {
     const self = this
     let result = await web3.eth.sendTransactionPromise({
-        from: account, 
+        from: sender, 
         to: instance.address,
         value: convertToWei(jQuery("#amountToDeposit").val())
     })
