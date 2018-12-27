@@ -6,6 +6,7 @@ import { default as contract } from 'truffle-contract'
 import SplitterArtifact from '../../build/contracts/Splitter.json'
 const Splitter = contract(SplitterArtifact)
 const Promise = require("bluebird");
+const assert = require('assert-plus');
 
 var accountNames = ["Alice", "Bob", "Carol"]
 let accounts
@@ -16,6 +17,7 @@ let instance
 
 window.addEventListener('load', function () {
   window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+  web3.eth.getTransactionReceiptMined = require("../../utils/getTransactionReceiptMined.js");
   // Promisify all functions of web3.eth and web3.version
   Promise.promisifyAll(web3.eth, { suffix: "Promise" });
   Promise.promisifyAll(web3.version, { suffix: "Promise" });
@@ -63,8 +65,12 @@ const App = {
       const self = this
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
-        let result = await instance.splitAmount(receiver1, receiver2, amountWei, { from: sender })
-        if(result) {
+        let txHash = await instance.splitAmount.sendTransaction(receiver1, receiver2, amountWei, { from: sender })
+        console.log("Your transaction is on the way, waiting to be mined!", txHash);
+        let receipt = await web3.eth.getTransactionReceiptMined(txHash);
+        assert.strictEqual(parseInt(receipt.status), 1);
+        console.log("Your transaction executed successfully!");
+        if(parseInt(receipt.status) == 1) {
           let result1 = await self.pullEther(receiver1)
           let result2 = await self.pullEther(receiver2)
           if(result1 && result2) {
