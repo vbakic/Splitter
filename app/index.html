@@ -10,46 +10,124 @@
 <body>
 
     <div>
-        <input id="amountToDeposit" value="10" />
-        <button onclick="App.deposit()">Deposit to Splitter (Ether)</button>
-    </div>
-
-    <div>
         <input id="splitAmount" value="10" />
-        <button onclick="App.splitAmount()">Split to Bob&Carol (Ether)</button>
+        <button onclick="App.splitAmount()">Deposit to Splitter (Ether)</button>
     </div>
-    
-    <p>Balances (Ether):</p>
 
     <div class="balance">
-        <label>Splitter:
+        <label>Splitter balance (Ether):
         <input disabled="disabled" id="Splitter" />
         </label>
     </div>
 
-    <div class="balance">
-        <label>Alice:
-        <input disabled="disabled" id="Alice" />
-        </label>
+    <div>
+        <label>Sender:</label>
+        <select id="sender">
+            <option selected="selected">0</option>
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Receiver 1:</label>
+        <select id="receiver1">
+            <option>0</option>
+            <option selected="selected">1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Receiver 2:</label>
+        <select id="receiver2">
+            <option>0</option>
+            <option>1</option>
+            <option selected="selected">2</option>
+            <option>3</option>
+            <option>4</option>
+        </select>
     </div>
 
     <div class="balance">
-        <label>Bob:
-        <input disabled="disabled" id="Bob" />
+        <h3>Alice</h3>
+        <label>Balance (ether):
+            <input disabled="disabled" id="Alice" />
         </label>
+        </br>
+        <label>Contract Balance (ether):
+            <input disabled="disabled" id="AliceContractBalance" />
+        </label>
+        </br>
+        <input id="0" value="0" />
+        <button onclick="App.pullEther(0)">Pull Ether from Splitter</button>
     </div>
 
     <div class="balance">
-        <label>Carol:
-        <input disabled="disabled" id="Carol" />
+        <h3>Bob</h3>
+        <label>Balance (ether):
+            <input disabled="disabled" id="Bob" />
         </label>
+        </br>
+        <label>Contract Balance (ether):
+            <input disabled="disabled" id="BobContractBalance" />
+        </label>
+        </br>
+        <input id="1" value="0" />
+        <button onclick="App.pullEther(1)">Pull Ether from Splitter</button>
+    </div>
+
+    <div class="balance">
+        <h3>Carol</h3>
+        <label>Balance (ether):
+            <input disabled="disabled" id="Carol" />
+        </label>
+        </br>
+        <label>Contract Balance (ether):
+            <input disabled="disabled" id="CarolContractBalance" />
+        </label>
+        </br>
+        <input id="2" value="0" />
+        <button onclick="App.pullEther(2)">Pull Ether from Splitter</button>
+    </div>
+
+
+    <div class="balance">
+        <h3>Jim</h3>
+        <label>Balance (ether):
+            <input disabled="disabled" id="Jim" />
+        </label>
+        </br>
+        <label>Contract Balance (ether):
+            <input disabled="disabled" id="JimContractBalance" />
+        </label>
+        </br>
+        <input id="3" value="0" />
+        <button onclick="App.pullEther(3)">Pull Ether from Splitter</button>
+    </div>
+
+    <div class="balance">
+        <h3>Trevor</h3>
+        <label>Balance (ether):
+            <input disabled="disabled" id="Trevor" />
+        </label>
+        </br>
+        <label>Contract Balance (ether):
+            <input disabled="disabled" id="TrevorContractBalance" />
+        </label>
+        </br>
+        <input id="4" value="0" />
+        <button onclick="App.pullEther(4)">Pull Ether from Splitter</button>
     </div>
     
     <style>
-        input {width: 160px}
+        h3 {margin: 10px 0px; }
+        input {width: 130px}
         div {margin: 5px}
-        div.balance {width: 220px}
-        div.balance input {float: right}
     </style>
 
 </body>

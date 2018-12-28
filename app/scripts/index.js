@@ -8,7 +8,7 @@ const Splitter = contract(SplitterArtifact)
 const Promise = require("bluebird");
 const assert = require('assert-plus');
 
-var accountNames = ["Alice", "Bob", "Carol"]
+var accountNames = ["Alice", "Bob", "Carol", "Jim", "Trevor"]
 let accounts
 let sender
 let receiver1
@@ -23,9 +23,20 @@ window.addEventListener('load', function () {
   Promise.promisifyAll(web3.version, { suffix: "Promise" });
   App.start()
   window.App = App
+  jQuery("#sender, #receiver1, #receiver2").change(() => {
+    App.update();
+  })
 })
 
 const App = {
+
+  update: function() {
+    console.log('update called!')
+      sender = accounts[jQuery("#sender").val()]
+      receiver1 = accounts[jQuery("#receiver1").val()]
+      receiver2 = accounts[jQuery("#receiver2").val()]
+  },
+
   start: async function () {
     const self = this
 
@@ -35,7 +46,7 @@ const App = {
     instance = await Splitter.deployed()
     accounts = await web3.eth.getAccountsPromise()
 
-    if (accounts.length == 0){
+    if (accounts.length < 5){
       throw new Error("No available accounts!");
     }
     else {
@@ -57,7 +68,11 @@ const App = {
   refreshAccountBalances: async function () {
     for (let [index, element] of accounts.entries()) {
       let balance = await web3.eth.getBalancePromise(element)
+      let balanceContract = await instance.getContractBalance({from: element})
       jQuery("#" + accountNames[index]).val(convertToEther(balance))
+      jQuery("#" + index).val(convertToEther(balanceContract))
+      jQuery("#" + accountNames[index] + "ContractBalance").val(convertToEther(balanceContract))
+      jQuery("#" + accountNames[index] + "Address").val(element)
     }
   },
 
@@ -65,39 +80,26 @@ const App = {
       const self = this
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
-        let txHash = await instance.splitAmount.sendTransaction(receiver1, receiver2, amountWei, { from: sender })
+        let txHash = await instance.splitAmount.sendTransaction(receiver1, receiver2, { from: sender, value: amountWei })
         console.log("Your transaction is on the way, waiting to be mined!", txHash);
         let receipt = await web3.eth.getTransactionReceiptMined(txHash);
         assert.strictEqual(parseInt(receipt.status), 1);
         console.log("Your transaction executed successfully!");
         if(parseInt(receipt.status) == 1) {
-          let result1 = await self.pullEther(receiver1)
-          let result2 = await self.pullEther(receiver2)
-          if(result1 && result2) {
-            self.refreshBalances()
-          }
+          self.refreshBalances()
         }
       } else {
         console.error("Error: only positive values acceptable!")
       }
   },
 
-  pullEther: async function (account) {
-    let result = await instance.pullEther({ from: account })
-    return result;
-  },
-
-  deposit: async function () {
+  pullEther: async function (accNumber) {
     const self = this
-    let result = await web3.eth.sendTransactionPromise({
-        from: sender, 
-        to: instance.address,
-        value: convertToWei(jQuery("#amountToDeposit").val())
-    })
-    if(result) {
-      self.refreshBalances()
-    }
+    let result = await instance.pullEther( convertToWei(jQuery("#" + accNumber).val()), { from: accounts[accNumber] })
+    self.refreshBalances()
+    return result;
   }
+
 }
 
 function convertToEther(value) {
