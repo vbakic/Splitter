@@ -68,7 +68,7 @@ const App = {
   refreshAccountBalances: async function () {
     for (let [index, element] of accounts.entries()) {
       let balance = await web3.eth.getBalancePromise(element)
-      let balanceContract = await instance.getContractBalance({from: element})
+      let balanceContract = await instance.balances(element)
       jQuery("#" + accountNames[index]).val(convertToEther(balance))
       jQuery("#" + index).val(convertToEther(balanceContract))
       jQuery("#" + accountNames[index] + "ContractBalance").val(convertToEther(balanceContract))
@@ -103,9 +103,11 @@ const App = {
 }
 
 function convertToEther(value) {
+  //return value;
   return web3.fromWei(value.toString(10), "ether");
 }
 
 function convertToWei(value) {
+  //return value;
   return web3.toWei(value, "ether");
 }
