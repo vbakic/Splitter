@@ -76,11 +76,11 @@ const App = {
     }
   },
 
-  splitAmount: async function () {
+  splitEther: async function () {
       const self = this
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
-        let txHash = await instance.splitAmount.sendTransaction(receiver1, receiver2, { from: sender, value: amountWei })
+        let txHash = await instance.splitEther.sendTransaction(receiver1, receiver2, { from: sender, value: amountWei })
         console.log("Your transaction is on the way, waiting to be mined!", txHash);
         let receipt = await web3.eth.getTransactionReceiptMined(txHash);
         assert.strictEqual(parseInt(receipt.status), 1);
@@ -93,9 +93,9 @@ const App = {
       }
   },
 
-  pullEther: async function (accNumber) {
+  withdrawEther: async function (accNumber) {
     const self = this
-    let result = await instance.pullEther( convertToWei(jQuery("#" + accNumber).val()), { from: accounts[accNumber] })
+    let result = await instance.withdrawEther( convertToWei(jQuery("#" + accNumber).val()), { from: accounts[accNumber] })
     self.refreshBalances()
     return result;
   }
@@ -103,11 +103,9 @@ const App = {
 }
 
 function convertToEther(value) {
-  //return value;
   return web3.fromWei(value.toString(10), "ether");
 }
 
 function convertToWei(value) {
-  //return value;
   return web3.toWei(value, "ether");
 }
