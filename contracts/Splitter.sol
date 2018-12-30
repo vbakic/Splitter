@@ -23,7 +23,7 @@ contract Splitter {
         require(receiver2 != address(0), "Error: second parameter is invalid address");
         emit LogSplitEther(msg.sender, receiver1, receiver2, msg.value);
         uint amountToAdd = msg.value/2;
-        if(msg.value % 2 == 1) balances[msg.sender]++; //I left this for simplicity only
+        if(msg.value % 2 == 1) balances[msg.sender] = balances[msg.sender].add(1);
         balances[receiver1] = balances[receiver1].add(amountToAdd);
         balances[receiver2] = balances[receiver2].add(amountToAdd);
         return true;
