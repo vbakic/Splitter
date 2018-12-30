@@ -58,6 +58,30 @@ const App = {
 
   },
 
+  followUpTransaction: async function(txHash) {
+    console.log("Your transaction is on the way, waiting to be mined!", txHash);
+    let receipt = await web3.eth.getTransactionReceiptMined(txHash);
+    assert.strictEqual(parseInt(receipt.status), 1);
+    console.log("Your transaction executed successfully!");
+    return true;
+  },
+
+  pauseSplitter: async function () {
+    let txHash = await instance.pauseContract.sendTransaction({from: sender})
+    let success = await this.followUpTransaction(txHash);
+    if(success) {
+      jQuery("#contractState").html("Paused");
+    }    
+  },
+
+  resumeSplitter: async function () {
+    let txHash = await instance.resumeContract.sendTransaction({from: sender})
+    let success = await this.followUpTransaction(txHash);
+    if(success) {
+      jQuery("#contractState").html("Running");
+    }
+  },
+
   refreshBalances: async function () {
     const self = this
     self.refreshAccountBalances()
@@ -81,11 +105,8 @@ const App = {
       const amountWei = convertToWei(jQuery("#splitAmount").val())
       if(amountWei > 0) {
         let txHash = await instance.splitEther.sendTransaction(receiver1, receiver2, { from: sender, value: amountWei })
-        console.log("Your transaction is on the way, waiting to be mined!", txHash);
-        let receipt = await web3.eth.getTransactionReceiptMined(txHash);
-        assert.strictEqual(parseInt(receipt.status), 1);
-        console.log("Your transaction executed successfully!");
-        if(parseInt(receipt.status) == 1) {
+        let success = await this.followUpTransaction(txHash);
+        if(success) {
           self.refreshBalances()
         }
       } else {
@@ -97,8 +118,11 @@ const App = {
     const self = this
     let amountToWithdraw = jQuery("#" + accNumber).val()
     if(amountToWithdraw > 0) {
-        let result = await instance.withdrawEther( convertToWei(amountToWithdraw), { from: accounts[accNumber] })
-        self.refreshBalances()
+        let txHash = await instance.withdrawEther.sendTransaction( convertToWei(amountToWithdraw), { from: accounts[accNumber] })
+        let success = await this.followUpTransaction(txHash);
+        if(success) {
+          self.refreshBalances()
+        }
     } else {
         console.error("Withdrawal amount has to be greater than 0")
     }
