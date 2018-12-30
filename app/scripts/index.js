@@ -95,9 +95,14 @@ const App = {
 
   withdrawEther: async function (accNumber) {
     const self = this
-    let result = await instance.withdrawEther( convertToWei(jQuery("#" + accNumber).val()), { from: accounts[accNumber] })
-    self.refreshBalances()
-    return result;
+    let amountToWithdraw = jQuery("#" + accNumber).val()
+    if(amountToWithdraw > 0) {
+        let result = await instance.withdrawEther( convertToWei(amountToWithdraw), { from: accounts[accNumber] })
+        self.refreshBalances()
+    } else {
+        console.error("Withdrawal amount has to be greater than 0")
+    }
+    
   }
 
 }
