@@ -1,7 +1,10 @@
 pragma solidity 0.4.24;
 
+import "./SafeMath.sol";
+
 contract Splitter {
 
+    using SafeMath for uint;
     mapping (address => uint) public balances;
 
     event LogSplitEther(address indexed sender, address indexed receiver1, address indexed receiver2, uint amountToSplit);
@@ -13,10 +16,8 @@ contract Splitter {
         emit LogSplitEther(msg.sender, receiver1, receiver2, msg.value);
         uint amountToAdd = msg.value/2;
         if(msg.value % 2 == 1) balances[msg.sender]++;
-        require(balances[receiver1] + amountToAdd >= balances[receiver1], "Error: overflow prevented");
-        balances[receiver1] += amountToAdd;
-        require(balances[receiver2] + amountToAdd >= balances[receiver2], "Error: overflow prevented");
-        balances[receiver2] += amountToAdd;
+        balances[receiver1] = balances[receiver1].add(amountToAdd);
+        balances[receiver2] = balances[receiver2].add(amountToAdd);
         return true;
     }
 
@@ -24,9 +25,8 @@ contract Splitter {
         require(amount != 0, "Error: amount cannot be zero");
         uint balance = balances[msg.sender];
         require(amount <= balance, "Error: you asked for nonexisting funds");
-        require(balance >= balance - amount, "Error: overflow prevented");
         emit LogWithdrawEther(msg.sender, amount);
-        balances[msg.sender] -= amount;
+        balances[msg.sender] = balances[msg.sender].sub(amount);
         msg.sender.transfer(amount);
         return true;
     }
