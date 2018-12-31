@@ -14,6 +14,7 @@ let sender
 let receiver1
 let receiver2
 let instance
+let owner
 
 window.addEventListener('load', function () {
   window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
@@ -67,7 +68,7 @@ const App = {
   },
 
   pauseSplitter: async function () {
-    let txHash = await instance.pauseContract.sendTransaction({from: sender})
+    let txHash = await instance.pauseContract.sendTransaction({from: owner})
     let success = await this.followUpTransaction(txHash);
     if(success) {
       jQuery("#contractState").html("Paused");
@@ -75,24 +76,54 @@ const App = {
   },
 
   resumeSplitter: async function () {
-    let txHash = await instance.resumeContract.sendTransaction({from: sender})
+    let txHash = await instance.resumeContract.sendTransaction({from: owner})
     let success = await this.followUpTransaction(txHash);
     if(success) {
       jQuery("#contractState").html("Running");
     }
   },
 
+  changeOwner: async function () {
+    let index = jQuery("#ownerSelector").val()
+    let txHash = await instance.changeOwner.sendTransaction(accounts[index], {from: owner})
+    let success = await this.followUpTransaction(txHash);
+    if(success) {
+      this.refreshOwnerInfo()
+    }
+  },
+
+  refreshOwnerInfo: async function () {
+    let ownerAdress = await instance.owner({from: owner})
+    for (let [index, element] of accounts.entries()) {
+      if(element == ownerAdress) {
+        owner = ownerAdress
+        jQuery("#currentOwner").val(index)
+      }
+    }
+  },
+
   refreshBalances: async function () {
     const self = this
     self.refreshAccountBalances()
-    let balance = await web3.eth.getBalancePromise(instance.address)
+    self.updateContractState()
+    self.refreshOwnerInfo()
+    const balance = await web3.eth.getBalancePromise(instance.address)
     jQuery('#Splitter').val(convertToEther(balance))
+  },
+
+  updateContractState: async function () {
+    let contractState = await instance.isRunning({from: owner})
+    if(contractState) {
+      jQuery('#contractState').html("Running")
+    } else {
+      jQuery('#contractState').html("Paused")
+    }    
   },
 
   refreshAccountBalances: async function () {
     for (let [index, element] of accounts.entries()) {
-      let balance = await web3.eth.getBalancePromise(element)
-      let balanceContract = await instance.balances(element)
+      const balance = await web3.eth.getBalancePromise(element)
+      const balanceContract = await instance.balances(element)
       jQuery("#" + accountNames[index]).val(convertToEther(balance))
       jQuery("#" + index).val(convertToEther(balanceContract))
       jQuery("#" + accountNames[index] + "ContractBalance").val(convertToEther(balanceContract))

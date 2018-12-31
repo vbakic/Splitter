@@ -16,6 +16,21 @@
     </div>
 
     <div>
+        <label>New owner:</label>
+        <select id="ownerSelector">
+            <option selected="selected">0</option>
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+        </select>
+        <button onclick="App.changeOwner()">Change Owner</button>
+        <br>
+        <span>Current Owner index:</span>
+        <input disabled="disabled" id="currentOwner" />
+    </div>
+
+    <div>
         <input id="splitAmount" value="10" />
         <button onclick="App.splitEther()">Deposit to Splitter (Ether)</button>
     </div>
