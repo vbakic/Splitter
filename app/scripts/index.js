@@ -167,11 +167,9 @@ const App = {
 }
 
 function convertToEther(value) {
-  return value
   return web3.fromWei(value.toString(10), "ether");
 }
 
 function convertToWei(value) {
-  return value
   return web3.toWei(value, "ether");
 }
