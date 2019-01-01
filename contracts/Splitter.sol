@@ -18,6 +18,7 @@ contract Ownable {
     }
 
     function changeOwner(address newOwner) public onlyOwner returns (bool) {
+        require(newOwner != owner, "Error: already that owner");
         emit LogChangeOwner(newOwner, msg.sender);
         owner = newOwner;
         return true;

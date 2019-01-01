@@ -85,10 +85,14 @@ const App = {
 
   changeOwner: async function () {
     let index = jQuery("#ownerSelector").val()
-    let txHash = await instance.changeOwner.sendTransaction(accounts[index], {from: owner})
-    let success = await this.followUpTransaction(txHash);
-    if(success) {
-      this.refreshOwnerInfo()
+    if(accounts[index] != owner) {
+      let txHash = await instance.changeOwner.sendTransaction(accounts[index], {from: owner})
+      let success = await this.followUpTransaction(txHash);
+      if(success) {
+        this.refreshOwnerInfo()
+      }
+    } else {
+      console.error("Already that owner")
     }
   },
 
@@ -163,9 +167,11 @@ const App = {
 }
 
 function convertToEther(value) {
+  return value
   return web3.fromWei(value.toString(10), "ether");
 }
 
 function convertToWei(value) {
+  return value
   return web3.toWei(value, "ether");
 }
