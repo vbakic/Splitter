@@ -83,6 +83,14 @@ const App = {
     }
   },
 
+  killSplitter: async function () {
+    let txHash = await instance.killContract.sendTransaction({from: owner})
+    let success = await this.followUpTransaction(txHash);
+    if(success) {
+      jQuery("#contractState").html("Killed!");
+    }
+  },
+
   changeOwner: async function () {
     let index = jQuery("#ownerSelector").val()
     if(accounts[index] != owner) {
@@ -122,6 +130,10 @@ const App = {
     } else {
       jQuery('#contractState').html("Paused")
     }    
+    contractState = await instance.isAlive({from: owner})
+    if(!contractState) {
+      jQuery('#contractState').html("Killed")
+    }
   },
 
   refreshAccountBalances: async function () {
