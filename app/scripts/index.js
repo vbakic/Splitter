@@ -105,7 +105,7 @@ const App = {
   },
 
   refreshOwnerInfo: async function () {
-    let ownerAdress = await instance.owner({from: owner})
+    let ownerAdress = await instance.getOwner({from: sender})
     for (let [index, element] of accounts.entries()) {
       if(element == ownerAdress) {
         owner = ownerAdress
@@ -124,15 +124,20 @@ const App = {
   },
 
   updateContractState: async function () {
-    let contractState = await instance.isRunning({from: owner})
-    if(contractState) {
-      jQuery('#contractState').html("Running")
-    } else {
-      jQuery('#contractState').html("Paused")
-    }    
-    contractState = await instance.isAlive({from: owner})
-    if(!contractState) {
-      jQuery('#contractState').html("Killed")
+    let contractState = await instance.getState({from: owner})
+    switch (contractState.toNumber()) {
+      case 0:
+        jQuery('#contractState').html("Running")
+        break
+      case 1:
+        jQuery('#contractState').html("Paused")
+        break
+      case 2:
+        jQuery('#contractState').html("Killed")
+        break
+      default:
+        jQuery('#contractState').html("N/A")
+        break
     }
   },
 
