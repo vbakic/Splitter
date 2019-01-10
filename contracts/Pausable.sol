@@ -4,46 +4,47 @@ import "./Ownable.sol";
 
 contract Pausable is Ownable {
 
-    enum possibleStates { Running, Paused, Killed }
-    possibleStates private State;
+    enum PossibleStates { Running, Paused, Killed }
+    PossibleStates private state;
 
     event LogPauseContract(address indexed accountAddress);
     event LogResumeContract(address indexed accountAddress);
     event LogKillContract(address indexed accountAddress);
 
     modifier onlyIfRunning {
-        require(uint(State) == 0, "Error: contract paused or killed");
+        require(state == PossibleStates.Running, "Error: contract paused or killed");
         _;
     }
 
     modifier onlyIfPaused {
-        require(uint(State) == 1, "Error: contract not paused");
+        require(state == PossibleStates.Paused, "Error: contract not paused");
         _;
     }
 
-    constructor() public {
-        State = possibleStates.Running;
+    constructor(uint8 initialState) public {
+        require(PossibleStates(initialState) != PossibleStates.Killed, "Error: contract cannot be killed at instantiation");
+        state = PossibleStates(initialState);
     }
 
-    function getState() public view returns (uint) {
-        return uint(State);
+    function getState() public view returns (uint8) {
+        return uint8(state);
     }
 
     function pauseContract() public onlyIfRunning onlyOwner returns(bool) {
         emit LogPauseContract(msg.sender);
-        State = possibleStates.Paused;
+        state = PossibleStates.Paused;
         return true;
     }
 
     function resumeContract() public onlyOwner onlyIfPaused returns(bool) {
         emit LogResumeContract(msg.sender);
-        State = possibleStates.Running;
+        state = PossibleStates.Running;
         return true;
     }
 
     function killContract() public onlyOwner onlyIfPaused returns (bool) {
         emit LogKillContract(msg.sender);
-        State = possibleStates.Killed;
+        state = PossibleStates.Killed;
         return true;
     }
 

@@ -8,13 +8,9 @@ const Splitter = contract(SplitterArtifact)
 const Promise = require("bluebird");
 const assert = require('assert-plus');
 
-var accountNames = ["Alice", "Bob", "Carol", "Jim", "Trevor"]
-let accounts
-let sender
-let receiver1
-let receiver2
-let instance
-let owner
+const accountNames = ["Alice", "Bob", "Carol", "Jim", "Trevor"]
+const contractStates = ["Running", "Paused", "Killed"]
+let accounts, sender, receiver1, receiver2, instance, owner
 
 window.addEventListener('load', function () {
   window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
@@ -125,20 +121,7 @@ const App = {
 
   updateContractState: async function () {
     let contractState = await instance.getState({from: owner})
-    switch (contractState.toNumber()) {
-      case 0:
-        jQuery('#contractState').html("Running")
-        break
-      case 1:
-        jQuery('#contractState').html("Paused")
-        break
-      case 2:
-        jQuery('#contractState').html("Killed")
-        break
-      default:
-        jQuery('#contractState').html("N/A")
-        break
-    }
+    jQuery('#contractState').html(contractStates[contractState.toNumber()])
   },
 
   refreshAccountBalances: async function () {
