@@ -13,7 +13,13 @@ const contractStates = ["Running", "Paused", "Killed"]
 let accounts, sender, receiver1, receiver2, instance, owner
 
 window.addEventListener('load', function () {
-  window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+  if (typeof window.web3 !== 'undefined') {
+      // Don't lose an existing provider, like Mist or Metamask
+      window.web3 = new Web3(web3.currentProvider);
+  } else {
+      // set the provider you want from Web3.providers
+      window.web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:8545'))
+  }
   web3.eth.getTransactionReceiptMined = require("../../utils/getTransactionReceiptMined.js");
   // Promisify all functions of web3.eth and web3.version
   Promise.promisifyAll(web3.eth, { suffix: "Promise" });
