@@ -16,6 +16,11 @@ contract Pausable is Ownable {
         _;
     }
 
+    modifier onlyIfAlive {
+        require(state != PossibleStates.Killed, "Error: contract killed");
+        _;
+    }
+
     modifier onlyIfPaused {
         require(state == PossibleStates.Paused, "Error: contract not paused");
         _;
