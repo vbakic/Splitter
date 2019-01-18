@@ -3,61 +3,64 @@ const Splitter = artifacts.require("Splitter");
 web3.eth.getTransactionReceiptMined = require("../utils/getTransactionReceiptMined.js");
 const expectedException = require("../utils/expectedExceptionPromise.js");
 
+const [Running, Paused, Killed] = [0, 1, 2];
+
+function checkIfSuccessfulTransaction(tx) {
+    return assert.equal(tx.receipt.status, 1);
+}
+
 contract("Splitter", accounts => {
 
     const [firstAccount, secondAccount, thirdAccount] = accounts;
 
     it("should reject deploying contract as killed", async () => {
         await expectedException(() => {
-            return Splitter.new(2)
+            return Splitter.new(Killed)
         });
     });
 
     describe("testing paused contract", function() {
-
-        beforeEach(function(){
-            return Splitter.new(1)
-            .then(function(instance) {
-                splitterPaused = instance;
-            });
+        let splitterPaused;
+        beforeEach(async() => {
+            splitterPaused = await Splitter.new(Paused);
         });
 
         it("test resume", async () => {
-            await splitterPaused.resumeContract({ from: firstAccount });
+            let tx = await splitterPaused.resumeContract({ from: firstAccount });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterPaused.getState(), 0);
         });
     
         it("test kill", async () => {
-            await splitterPaused.killContract({ from: firstAccount });
+            let tx = await splitterPaused.killContract({ from: firstAccount });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterPaused.getState(), 2);
         });
     
         it("should reject resume from non-owner", async () => {
-            await expectedException(() => {
-                return splitterPaused.resumeContract({ from: secondAccount });
+            await expectedException(async() => {
+                await splitterPaused.resumeContract({ from: secondAccount });
             });
         });
     
         it("should reject kill from non-owner", async () => {
-            await expectedException(() => {
-                return splitterPaused.killContract({ from: secondAccount });
+            await expectedException(async() => {
+                await splitterPaused.killContract({ from: secondAccount });
             });
         });
 
-        it("should reject split when paused", () => {
-            return expectedException(() => {
-                return splitterPaused.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+        it("should reject split when paused", async() => {
+            await expectedException(async() => {
+                await splitterPaused.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
             });
         });
 
     });
 
     describe("testing running contract", function() {
-        beforeEach(function(){
-            return Splitter.new(0)
-            .then(function(instance) {
-                splitterRunning = instance;
-            });
+        let splitterRunning;
+        beforeEach(async() => {
+            splitterRunning = await Splitter.new(Running);
         });
     
         it("test getOwner", async () => {
@@ -69,153 +72,177 @@ contract("Splitter", accounts => {
         });
     
         it("test changing owner", async () => {
-            await splitterRunning.changeOwner(secondAccount, { from: firstAccount });
+            let tx = await splitterRunning.changeOwner(secondAccount, { from: firstAccount });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterRunning.getOwner(), secondAccount);
         });
     
         it("test pause", async () => {
-            await splitterRunning.pauseContract({ from: firstAccount });
+            let tx = await splitterRunning.pauseContract({ from: firstAccount });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterRunning.getState(), 1);
         });    
     
         it("test split", async () => {
-            await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            let tx = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 5);
         });
 
+        it("test two consecutive splits", async () => {
+            let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            checkIfSuccessfulTransaction(tx1);
+            let tx2 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            checkIfSuccessfulTransaction(tx2);
+            assert.equal(await splitterRunning.balances(secondAccount), 10);
+            assert.equal(await splitterRunning.balances(thirdAccount), 10);
+        });
+
         it("test split of uneven number", async () => {
-            await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 3 });
+            let tx = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 3 });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterRunning.balances(firstAccount), 1);
             assert.equal(await splitterRunning.balances(secondAccount), 1);
             assert.equal(await splitterRunning.balances(thirdAccount), 1);
         });
 
         it("test split of exactly 1 wei", async () => {
-            await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 1 });
+            let tx = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 1 });
+            checkIfSuccessfulTransaction(tx);
             assert.equal(await splitterRunning.balances(firstAccount), 1);
             assert.equal(await splitterRunning.balances(secondAccount), 0);
             assert.equal(await splitterRunning.balances(thirdAccount), 0);
         });
     
         it("test withdraw", async () => {
-            await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            checkIfSuccessfulTransaction(tx1);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 5);
-            await splitterRunning.withdrawEther(5, { from: secondAccount });
+            let tx2 = await splitterRunning.withdrawEther(5, { from: secondAccount });
+            checkIfSuccessfulTransaction(tx2);
             assert.equal(await splitterRunning.balances(secondAccount), 0);
-            await splitterRunning.withdrawEther(5, { from: thirdAccount });
+            let tx3 = await splitterRunning.withdrawEther(5, { from: thirdAccount });
+            checkIfSuccessfulTransaction(tx3);
             assert.equal(await splitterRunning.balances(thirdAccount), 0);
         });
 
         it("test withdraw when paused", async () => {
-            await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            checkIfSuccessfulTransaction(tx1);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 5);
-            await splitterRunning.pauseContract({from: firstAccount}); //pause the contract
-            await splitterRunning.withdrawEther(5, { from: secondAccount });
+            let tx2 = await splitterRunning.pauseContract({from: firstAccount}); //pause the contract
+            checkIfSuccessfulTransaction(tx2);
+            let tx3 = await splitterRunning.withdrawEther(5, { from: secondAccount });
+            checkIfSuccessfulTransaction(tx3);
             assert.equal(await splitterRunning.balances(secondAccount), 0);
-            await splitterRunning.withdrawEther(5, { from: thirdAccount });
+            let tx4 = await splitterRunning.withdrawEther(5, { from: thirdAccount });
+            checkIfSuccessfulTransaction(tx4);
             assert.equal(await splitterRunning.balances(thirdAccount), 0);
         });
     
         it("should reject direct transaction without value", async () => {
-            return expectedException(() => {
-                return splitterRunning.sendTransaction({ from: firstAccount });
+            await expectedException(async() => {
+                await splitterRunning.sendTransaction({ from: firstAccount });
             });
         });
     
-        it("should reject direct transaction with value", () => {
-            return expectedException(() => {
-                return splitterRunning.sendTransaction({ from: firstAccount, value: 10 });
+        it("should reject direct transaction with value", async() => {
+            await expectedException(async() => {
+                await splitterRunning.sendTransaction({ from: firstAccount, value: 10 });
             });
         });
     
-        it("should reject split without value", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount });
+        it("should reject split without value", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount });
             });
         });
     
-        it("should reject split without receiver addresses", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther( 0, 0, { from: firstAccount, value: 10 });
+        it("should reject split without receiver addresses", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther( 0, 0, { from: firstAccount, value: 10 });
             });
         });
     
-        it("should reject split without receiver 1", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther( 0, thirdAccount, { from: firstAccount, value: 10 });
+        it("should reject split without receiver 1", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther( 0, thirdAccount, { from: firstAccount, value: 10 });
             });
         });
 
-        it("should reject split without receiver 2", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther( secondAccount, 0, { from: firstAccount, value: 10 });
+        it("should reject split without receiver 2", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther( secondAccount, 0, { from: firstAccount, value: 10 });
             });
         });
 
-        it("should reject split to the sender", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther( firstAccount, thirdAccount, { from: firstAccount, value: 10 });
+        it("should reject split to the sender", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther( firstAccount, thirdAccount, { from: firstAccount, value: 10 });
             });
         });
 
-        it("should reject split to the sender #2", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther( secondAccount, firstAccount, { from: firstAccount, value: 10 });
+        it("should reject split to the sender #2", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther( secondAccount, firstAccount, { from: firstAccount, value: 10 });
             });
         });
 
-        it("should reject split to the sender #3", () => {
-            return expectedException(() => {
-                return splitterRunning.splitEther( firstAccount, firstAccount, { from: firstAccount, value: 10 });
+        it("should reject split to the sender #3", async() => {
+            await expectedException(async() => {
+                await splitterRunning.splitEther( firstAccount, firstAccount, { from: firstAccount, value: 10 });
             });
         });
 
         it("should reject withdraw without amount", async () => {
             await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            await expectedException(() => {
-                return splitterRunning.withdrawEther( 0, { from: secondAccount });
+            await expectedException(async() => {
+                await splitterRunning.withdrawEther( 0, { from: secondAccount });
             });
         });
     
         it("should reject withdraw without balance", async () => {
-            await expectedException(() => {
-                return splitterRunning.withdrawEther( 5, { from: secondAccount });
+            await expectedException(async() => {
+                await splitterRunning.withdrawEther( 5, { from: secondAccount });
             });
         });
 
         it("should reject withdraw more than balance", async () => {
             await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            await expectedException(() => {
-                return splitterRunning.withdrawEther( 20, { from: secondAccount });
+            await expectedException(async() => {
+                await splitterRunning.withdrawEther( 20, { from: secondAccount });
             });
         });
     
         it("should reject change owner from non-owner", async () => {
-            await expectedException(() => {
-                return splitterRunning.changeOwner(thirdAccount, { from: secondAccount });
+            await expectedException(async() => {
+                await splitterRunning.changeOwner(thirdAccount, { from: secondAccount });
             });
         });
     
         it("should reject pause from non-owner", async () => {
-            await expectedException(() => {
-                return splitterRunning.pauseContract({ from: secondAccount });
+            await expectedException(async() => {
+                await splitterRunning.pauseContract({ from: secondAccount });
             });
         });
     
         it("should reject kill if not paused", async () => {
-            await expectedException(() => {
-                return splitterRunning.killContract({ from: firstAccount });
+            await expectedException(async() => {
+                await splitterRunning.killContract({ from: firstAccount });
             });
         });
 
         it("should reject withdraw when killed", async () => {
-            await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            checkIfSuccessfulTransaction(tx1);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
-            await splitterRunning.pauseContract({from: firstAccount}); //pausing the contract
-            await splitterRunning.killContract({from: firstAccount}); //killing the contract
+            let tx2 = await splitterRunning.pauseContract({from: firstAccount}); //pausing the contract
+            checkIfSuccessfulTransaction(tx2);
+            let tx3 = await splitterRunning.killContract({from: firstAccount}); //killing the contract
+            checkIfSuccessfulTransaction(tx3);
             await expectedException(() => {
                 return splitterRunning.withdrawEther(5, { from: secondAccount });
             });
@@ -225,26 +252,26 @@ contract("Splitter", accounts => {
 
     describe("testing killed contract", function() {
         beforeEach( async () => {
-            splitter = await Splitter.new(1) //setting initial state to paused because it can't be started as killed
+            splitter = await Splitter.new(Paused) //setting initial state to paused because it can't be started as killed
             await splitter.killContract({from: firstAccount}); //killing the contract
         });
     
         it("should reject resume if killed", async () => {
-            await expectedException(() => {
-                return splitter.resumeContract({ from: firstAccount });
+            await expectedException(async() => {
+                await splitter.resumeContract({ from: firstAccount });
             });
         });
     
         it("should reject pause if killed", async () => {
-            await expectedException(() => {
-                return splitter.pauseContract({ from: firstAccount });
+            await expectedException(async() => {
+                await splitter.pauseContract({ from: firstAccount });
             });
         });
 
 
         it("should reject split when killed", async () => {
-            await expectedException(() => {
-                return splitter.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
+            await expectedException(async() => {
+                await splitter.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
             });
         });
     
