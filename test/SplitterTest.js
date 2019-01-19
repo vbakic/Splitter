@@ -6,6 +6,7 @@ const expectedException = require("../utils/expectedExceptionPromise.js");
 const [Running, Paused, Killed] = [0, 1, 2];
 
 function checkIfSuccessfulTransaction(tx) {
+    assert.strictEqual(tx.logs.length, 1, "Only one event");
     return assert.equal(tx.receipt.status, 1);
 }
 
@@ -15,14 +16,14 @@ contract("Splitter", accounts => {
 
     it("should reject deploying contract as killed", async () => {
         await expectedException(() => {
-            return Splitter.new(Killed)
+            return Splitter.new(Killed, { from: firstAccount })
         });
     });
 
     describe("testing paused contract", function() {
         let splitterPaused;
         beforeEach(async() => {
-            splitterPaused = await Splitter.new(Paused);
+            splitterPaused = await Splitter.new(Paused, { from: firstAccount });
         });
 
         it("test resume", async () => {
@@ -60,7 +61,7 @@ contract("Splitter", accounts => {
     describe("testing running contract", function() {
         let splitterRunning;
         beforeEach(async() => {
-            splitterRunning = await Splitter.new(Running);
+            splitterRunning = await Splitter.new(Running, { from: firstAccount });
         });
     
         it("test getOwner", async () => {
@@ -252,7 +253,7 @@ contract("Splitter", accounts => {
 
     describe("testing killed contract", function() {
         beforeEach( async () => {
-            splitter = await Splitter.new(Paused) //setting initial state to paused because it can't be started as killed
+            splitter = await Splitter.new(Paused, { from: firstAccount }) //setting initial state to paused because it can't be started as killed
             await splitter.killContract({from: firstAccount}); //killing the contract
         });
     

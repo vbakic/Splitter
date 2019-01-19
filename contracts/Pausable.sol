@@ -1,8 +1,8 @@
 pragma solidity 0.4.24;
 
-import "./Ownable.sol";
+import "./Owned.sol";
 
-contract Pausable is Ownable {
+contract Pausable is Owned {
 
     enum PossibleStates { Running, Paused, Killed }
     PossibleStates private state;
