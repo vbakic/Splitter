@@ -8,8 +8,8 @@ contract Splitter is Pausable {
     using SafeMath for uint;
     mapping (address => uint) public balances;
     
-    event LogSplitEther(address indexed sender, address indexed receiver1, address indexed receiver2, uint amountToSplit);
-    event LogWithdrawEther(address indexed accountAddress, uint transferredAmount);    
+    event LogSplitEther(address indexed caller, address indexed receiver1, address indexed receiver2, uint amountToSplit);
+    event LogWithdrawEther(address indexed caller, uint transferredAmount);    
         
     constructor(uint8 initialState) public Pausable(initialState) {}
 

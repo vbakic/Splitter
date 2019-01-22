@@ -5,9 +5,25 @@ const expectedException = require("../utils/expectedExceptionPromise.js");
 
 const [Running, Paused, Killed] = [0, 1, 2];
 
-function checkIfSuccessfulTransaction(tx) {
+function checkIfSuccessfulTransaction(tx, caller, expectedEventName) {
     assert.strictEqual(tx.logs.length, 1, "Only one event");
+    assert.strictEqual(tx.logs[0].args.caller, caller, "Wrong caller");
+    assert.strictEqual(tx.logs[0].event, expectedEventName, "Wrong event");
     return assert.equal(tx.receipt.status, 1);
+}
+
+function checkChangeOwnerEventArgs(tx, newOwner) {
+    return assert.strictEqual(tx.logs[0].args.newOwner, newOwner, "Wrong newOwner");
+}
+
+function checkSplitEtherEventArgs(tx, receiver1, receiver2, amount) {
+    assert.strictEqual(tx.logs[0].args.receiver1, receiver1, "Wrong receiver1");
+    assert.strictEqual(tx.logs[0].args.receiver2, receiver2, "Wrong receiver2");
+    return assert.strictEqual(parseInt(tx.logs[0].args.amountToSplit.toString(10)), amount, "Wrong amountToSplit");
+}
+
+function checkWithdrawEtherEventArgs(tx, amount) {
+    return assert.strictEqual(parseInt(tx.logs[0].args.transferredAmount.toString(10)), amount, "Wrong amountToWithdraw");
 }
 
 contract("Splitter", accounts => {
@@ -28,13 +44,13 @@ contract("Splitter", accounts => {
 
         it("test resume", async () => {
             let tx = await splitterPaused.resumeContract({ from: firstAccount });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogResumeContract");
             assert.equal(await splitterPaused.getState(), 0);
         });
     
         it("test kill", async () => {
             let tx = await splitterPaused.killContract({ from: firstAccount });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogKillContract");
             assert.equal(await splitterPaused.getState(), 2);
         });
     
@@ -74,35 +90,40 @@ contract("Splitter", accounts => {
     
         it("test changing owner", async () => {
             let tx = await splitterRunning.changeOwner(secondAccount, { from: firstAccount });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogChangeOwner");
+            checkChangeOwnerEventArgs(tx, secondAccount);
             assert.equal(await splitterRunning.getOwner(), secondAccount);
         });
     
         it("test pause", async () => {
             let tx = await splitterRunning.pauseContract({ from: firstAccount });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogPauseContract");
             assert.equal(await splitterRunning.getState(), 1);
         });    
     
         it("test split", async () => {
             let tx = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx, secondAccount, thirdAccount, 10);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 5);
         });
 
         it("test two consecutive splits", async () => {
             let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            checkIfSuccessfulTransaction(tx1);
+            checkIfSuccessfulTransaction(tx1, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx1, secondAccount, thirdAccount, 10);
             let tx2 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            checkIfSuccessfulTransaction(tx2);
+            checkIfSuccessfulTransaction(tx2, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx2, secondAccount, thirdAccount, 10);
             assert.equal(await splitterRunning.balances(secondAccount), 10);
             assert.equal(await splitterRunning.balances(thirdAccount), 10);
         });
 
         it("test split of uneven number", async () => {
             let tx = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 3 });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx, secondAccount, thirdAccount, 3);
             assert.equal(await splitterRunning.balances(firstAccount), 1);
             assert.equal(await splitterRunning.balances(secondAccount), 1);
             assert.equal(await splitterRunning.balances(thirdAccount), 1);
@@ -110,7 +131,8 @@ contract("Splitter", accounts => {
 
         it("test split of exactly 1 wei", async () => {
             let tx = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 1 });
-            checkIfSuccessfulTransaction(tx);
+            checkIfSuccessfulTransaction(tx, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx, secondAccount, thirdAccount, 1);
             assert.equal(await splitterRunning.balances(firstAccount), 1);
             assert.equal(await splitterRunning.balances(secondAccount), 0);
             assert.equal(await splitterRunning.balances(thirdAccount), 0);
@@ -118,29 +140,35 @@ contract("Splitter", accounts => {
     
         it("test withdraw", async () => {
             let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            checkIfSuccessfulTransaction(tx1);
+            checkIfSuccessfulTransaction(tx1, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx1, secondAccount, thirdAccount, 10);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 5);
             let tx2 = await splitterRunning.withdrawEther(5, { from: secondAccount });
-            checkIfSuccessfulTransaction(tx2);
+            checkIfSuccessfulTransaction(tx2, secondAccount, "LogWithdrawEther");
+            checkWithdrawEtherEventArgs(tx2, 5);
             assert.equal(await splitterRunning.balances(secondAccount), 0);
             let tx3 = await splitterRunning.withdrawEther(5, { from: thirdAccount });
-            checkIfSuccessfulTransaction(tx3);
+            checkIfSuccessfulTransaction(tx3, thirdAccount, "LogWithdrawEther");
+            checkWithdrawEtherEventArgs(tx3, 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 0);
         });
 
         it("test withdraw when paused", async () => {
             let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            checkIfSuccessfulTransaction(tx1);
+            checkIfSuccessfulTransaction(tx1, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx1, secondAccount, thirdAccount, 10);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 5);
             let tx2 = await splitterRunning.pauseContract({from: firstAccount}); //pause the contract
-            checkIfSuccessfulTransaction(tx2);
+            checkIfSuccessfulTransaction(tx2, firstAccount, "LogPauseContract");
             let tx3 = await splitterRunning.withdrawEther(5, { from: secondAccount });
-            checkIfSuccessfulTransaction(tx3);
+            checkIfSuccessfulTransaction(tx3, secondAccount, "LogWithdrawEther");
+            checkWithdrawEtherEventArgs(tx3, 5);
             assert.equal(await splitterRunning.balances(secondAccount), 0);
             let tx4 = await splitterRunning.withdrawEther(5, { from: thirdAccount });
-            checkIfSuccessfulTransaction(tx4);
+            checkIfSuccessfulTransaction(tx4, thirdAccount, "LogWithdrawEther");
+            checkWithdrawEtherEventArgs(tx4, 5);
             assert.equal(await splitterRunning.balances(thirdAccount), 0);
         });
     
@@ -238,12 +266,13 @@ contract("Splitter", accounts => {
 
         it("should reject withdraw when killed", async () => {
             let tx1 = await splitterRunning.splitEther(secondAccount, thirdAccount, { from: firstAccount, value: 10 });
-            checkIfSuccessfulTransaction(tx1);
+            checkIfSuccessfulTransaction(tx1, firstAccount, "LogSplitEther");
+            checkSplitEtherEventArgs(tx1, secondAccount, thirdAccount, 10);
             assert.equal(await splitterRunning.balances(secondAccount), 5);
             let tx2 = await splitterRunning.pauseContract({from: firstAccount}); //pausing the contract
-            checkIfSuccessfulTransaction(tx2);
+            checkIfSuccessfulTransaction(tx2, firstAccount, "LogPauseContract");
             let tx3 = await splitterRunning.killContract({from: firstAccount}); //killing the contract
-            checkIfSuccessfulTransaction(tx3);
+            checkIfSuccessfulTransaction(tx3, firstAccount, "LogKillContract");
             await expectedException(() => {
                 return splitterRunning.withdrawEther(5, { from: secondAccount });
             });

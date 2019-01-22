@@ -7,9 +7,9 @@ contract Pausable is Owned {
     enum PossibleStates { Running, Paused, Killed }
     PossibleStates private state;
 
-    event LogPauseContract(address indexed accountAddress);
-    event LogResumeContract(address indexed accountAddress);
-    event LogKillContract(address indexed accountAddress);
+    event LogPauseContract(address indexed caller);
+    event LogResumeContract(address indexed caller);
+    event LogKillContract(address indexed caller);
 
     modifier onlyIfRunning {
         require(state == PossibleStates.Running, "Error: contract paused or killed");
